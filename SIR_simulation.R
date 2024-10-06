@@ -10,14 +10,14 @@ library(rstan)
 library(stats)
 
 
-# SIRモデル関数を定義する(βの値が途中で変わる)
+# SIR model
 sir_model <- function(time, state, parameters) {
   with(as.list(c(state, parameters)), {
     # tが100未満の場合、100から150の間、150以上の場合でbetaの値を変更する
     if (time < 35) {
       beta_value <- beta
     } else if (time >= 35 & time < 60) {
-      beta_value <- beta/1 #3
+      beta_value <- beta/3 #3
     } else {
       beta_value <- beta*1
     }
@@ -30,7 +30,7 @@ sir_model <- function(time, state, parameters) {
 }
 
 
-# 初期値
+# initial value
 A <- 0.00001
 initial_state <- c(S = 1 - A, I = A, R = 0)
 
@@ -44,7 +44,7 @@ output <- ode(y = initial_state, times = times, func = sir_model, parms = parame
 data_sim <- data.frame(output)
 
 
-#新規感染者数に変換
+#newly infected people
 population <- 100000
 incidence <- NULL
 incidence <- A
@@ -67,7 +67,7 @@ time <- data.frame(Time_2 = seq(0, nrow(data_c)-1, by = 1))
 data_sim_3 <- cbind(data_c, time) 
 
 
-#下水濃度に変換
+#wastewater concentration
 data_shedding <- read.csv("Assumed_shedding.csv")
 wastewater <- numeric()
 run <- nrow(data_sim_3)-1
@@ -86,7 +86,7 @@ data_sim_2 <- cbind(data_sim, incidence)
 data_sim_2 <- data_sim_2 %>% mutate(incidence_2 = incidence*population)
 
 
-#測定誤差を組み込む
+#measurement error
 measured_ww <- c(0)
 run_2 <- nrow(data_waste)
 for(i in 2:run_2){
@@ -97,7 +97,7 @@ for(i in 2:run_2){
 data_measured_ww <- data.frame(measured_ww)
 data_waste_2 <- cbind(data_waste, data_measured_ww)
 
-#データの統合
+
 zeros_1 <- rep(0,23)
 zeros_1_b <- rep(0,25)
 zeros_2 <- rep(0,1)
@@ -116,7 +116,7 @@ data_sim_final <- cbind(data_sim_3, data_waste_3)
 data_sim_final <- data_sim_final %>% mutate(measured_ww_2 = if_else(measured_ww <= 0, 0, 10^(measured_ww)))
 data_sim_final <- data_sim_final[26:250, ]
 
-#報告誤差をいれる
+
 report_case <- numeric()
 run_3 <- nrow(data_sim_final)
 for(i in 1:run_3){
@@ -162,7 +162,7 @@ plot_ww
 
 
 
-#データの一部をNAに変換(7の倍数の行をNAに変換する)
+#Convert into NA
 data_sim_final_2 <- data_sim_final %>% filter(incidence_2 > 0 & wastewater > 0)
 nrow(data_sim_final_2)
 
@@ -177,9 +177,7 @@ data_stan_2[data_stan_2$time %% 7 == 1|data_stan_2$time %% 7 == 2
             |data_stan_2$time %% 7 == 5 |data_stan_2$time %% 7 == 6,] <- NA
 
 
-#状態空間モデル
-#
-
+#State-space model
 
 data_stan <- data_sim_final_2 
 sample_size_1 <- nrow(data_stan)
@@ -289,7 +287,7 @@ data_m <- cbind(result_df_1, result_df_2, result_df_3)
 
 
 
-#時間軸の追加
+
 data_x <- data_sim_final_2 %>% select(time, measured_ww, wastewater)
 data_x_2 <- cbind(data_x, data_m)
 
@@ -384,7 +382,7 @@ print(average_error_7_b)
 
 
 #Effective reproduction number 
-# ガンマ関数の定義
+# gamma function (for generation interval)
 gamma_function <- function(x, shape, rate) {
   return((rate^shape) * (x^(shape - 1)) * exp(-rate * x) / gamma(shape))
 }
@@ -646,35 +644,11 @@ data_ave_re_7 <- data_ave_re_7 %>% mutate(standard_error = abs(median_7/med_inci
 average_error_re_7 <- sqrt(sum(data_ave_re_7$error)/nrow(data_eff_xx_2 ))
 print(average_error_re_7)
 average_error_7_b <- (sum(data_ave_re_7$standard_error)/nrow(data_eff_xx_2 ))
-print(average_error_7_b)
+print(average_error_7_b)  
+  
+  
+  
 
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   
   
   data_re_subset <- data_eff_xx_2
